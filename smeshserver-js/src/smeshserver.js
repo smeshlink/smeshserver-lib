@@ -29,8 +29,8 @@ var
   
   console,
 	
-	SmeshServer = function (apiHost) {
-		apiHost = apiHost || _apiHost;
+  SmeshServer = function (apiHost) {
+    apiHost = apiHost || _apiHost;
     
     var
       events = {},
