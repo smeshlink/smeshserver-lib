@@ -1,3 +1,4 @@
-smeshserver.js - SmeshServer Javascript Library
+smeshserver.js
 ==============
 
+SmeshServer Javascript Library
