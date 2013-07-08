@@ -1,4 +1,6 @@
 smeshserver-lib
 ===============
 
-Libraries for SmeshServer
+Client libraries for SmeshServer
+
+- [smeshserver.js] (smeshserver-js) - SmeshServer Javascript Library
