@@ -28,6 +28,46 @@ var
   _ms = window.ms,
   
   console,
+  
+  // convert to local date
+  coerceToLocal = function(date) {
+    return new Date(
+      date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+      date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(),
+      date.getUTCMilliseconds()
+    );
+  },
+
+  // convert date from ISO8601 string or timestamp
+  fromDateTime8601 = function(str, utcMode) {
+    if (typeof str === 'number')
+      return new Date(str * 1000);
+    var m = str.match(/^(\d{4})(-(\d{2})(-(\d{2})([T ](\d{2}):(\d{2})(:(\d{2})(\.(\d+))?)?(Z|(([-+])(\d{2})(:?(\d{2}))?))?)?)?)?$/);
+    if (m) {
+      var d = new Date(Date.UTC(
+        m[1],
+        m[3] ? m[3] - 1 : 0,
+        m[5] || 1,
+        m[7] || 0,
+        m[8] || 0,
+        m[10] || 0,
+        m[12] ? Number('0.' + m[12]) * 1000 : 0
+      ));
+      if (m[13]) { // has gmt offset or Z
+        if (m[14]) { // has gmt offset
+          d.setUTCMinutes(
+            d.getUTCMinutes() +
+            (m[15] == '-' ? 1 : -1) * (Number(m[16]) * 60 + (m[18] ? Number(m[18]) : 0))
+          );
+        }
+      } else { // no specified timezone
+        if (!utcMode) {
+          d = coerceToLocal(d);
+        }
+      }
+      return d;
+    }
+  },
 	
   SmeshServer = function (apiHost) {
     apiHost = apiHost || _apiHost;
@@ -808,6 +848,8 @@ window.XMLRPCResponse = XMLRPCResponse;
 
 SmeshServer.prototype = {
   version: _version,
+  
+  fromDateTime8601: fromDateTime8601,
   
   signIn: function(user, pwd, done, fail) {
     if (typeof user === 'function') {
