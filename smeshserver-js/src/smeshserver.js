@@ -68,6 +68,39 @@ var
       return d;
     }
   },
+  
+  parseJSON = ($ && $.parseJSON) || (function() {
+    // Borrowed from JQuery, http://jquery.com/
+    if (window.JSON && window.JSON.parse) {
+      return window.JSON.parse;
+    }
+    var
+      rvalidchars = /^[\],:{}\s]*$/,
+      rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g,
+      rvalidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
+      rvalidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g,
+      parse = function(data) {
+        if (data === null) {
+          return data;
+        }
+        
+        if ( typeof data === "string" ) {
+          // Make sure leading/trailing whitespace is removed (IE can't handle it)
+          data = data.trim();
+
+          if (data) {
+            // Make sure the incoming data is actual JSON
+            // Logic borrowed from http://json.org/json2.js
+            if (rvalidchars.test(data.replace(rvalidescape, "@")
+              .replace( rvalidtokens, "]")
+              .replace( rvalidbraces, ""))) {
+              return (new Function("return " + data))();
+            }
+          }
+        }
+      };
+      return parse;
+  })(),
 	
   SmeshServer = function (apiHost) {
     apiHost = apiHost || _apiHost;
@@ -91,6 +124,7 @@ var
     
     this.trigger = trigger;
     this.on = on;
+    this.parseJSON = parseJSON;
     
     // XML-RPC
     var
@@ -348,7 +382,7 @@ var
           };
 
           socket.onmessage = function(e) {
-            var obj = $.parseJSON(e.data.replace(/'/g, '"').replace('data:', '"data":')),
+            var obj = parseJSON(e.data.replace(/'/g, '"').replace('data:', '"data":')),
               data = { name: obj.parser, fields: obj.data };
             
             ws.ondata && ws.ondata(data);
@@ -373,42 +407,6 @@ if (window.console && window.console.log && window.console.error) {
   console = window.console;
 } else {
   console = { log: function() { }, error: function() { } };
-}
-
-if (!$) {
-  // Borrowed from JQuery, http://jquery.com/
-  var
-    rvalidchars = /^[\],:{}\s]*$/,
-    rvalidbraces = /(?:^|:|,)(?:\s*\[)+/g,
-    rvalidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
-    rvalidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g;
-  $ = {
-    parseJSON: function(data) {
-      // Attempt to parse using the native JSON parser first
-      if (window.JSON && window.JSON.parse) {
-        return window.JSON.parse(data);
-      }
-
-      if (data === null) {
-        return data;
-      }
-      
-      if ( typeof data === "string" ) {
-        // Make sure leading/trailing whitespace is removed (IE can't handle it)
-        data = data.trim();
-
-        if (data) {
-          // Make sure the incoming data is actual JSON
-          // Logic borrowed from http://json.org/json2.js
-          if (rvalidchars.test(data.replace(rvalidescape, "@")
-            .replace( rvalidtokens, "]")
-            .replace( rvalidbraces, ""))) {
-            return (new Function("return " + data))();
-          }
-        }
-      }
-    }
-  };
 }
 
 /*
