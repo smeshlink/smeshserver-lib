@@ -21,7 +21,7 @@ var
   
   // Default api host
   _apiHost = location.host,
-	_version = '1.0.1',
+  _version = '1.0.1',
   _verbose = true,
   
   // Map over the ms in case of overwrite
@@ -340,7 +340,8 @@ var
     
     // Socket
     var
-      socketEndpoint = 'ws://' + apiHost + ':9007',
+      socketEndpoint = 'ws://' + (apiHost.substr(0, apiHost.indexOf(':') < 0
+        ? undefined : apiHost.indexOf(':'))) +':9007',
       socket = false;
     
     this.socketEndpoint = function(uri) {
@@ -358,7 +359,7 @@ var
         
         if (!socket && WebSocket) {
           var ws = this;
-        
+          
           socket = new WebSocket(socketEndpoint);
           
           socket.onerror = function(e) {

@@ -1,0 +1,304 @@
+﻿<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>SmeshLink</title>
+		<link href="css/bootstrap.css" media="screen" rel="stylesheet" type="text/css" />
+		<!--
+		<link href="css/todc-bootstrap.css" media="screen" rel="stylesheet" type="text/css" />
+		-->
+		<style type="text/css">
+		#hd { background-color: #F3F3F3; background-image: linear-gradient(#F9F9F9, #F3F3F3); background-repeat: repeat-x; border-bottom: 1px solid #E5E5E5; text-shadow: 0 1px 0 #FFFFFF; }
+		#hd h1 { font-size: 2em; margin-top: 0; margin-bottom: 0; }
+		#hd em { font-style: normal; color: #FFBB00; }
+		#bd { padding-top: 1em; }
+		#bd .table, #bd .nav { margin-bottom: 3px; }
+		#ft { margin-top: 1em; position: relative; }
+		#ft #legal { border-top: 1px solid #EEEEEE; padding-top: 1em; }
+		#signin, #ct { display: none; }
+		#signin form { margin: 0 auto; float: none; }
+		#loading { text-align: center; }
+		#user-links a { display: block; padding: 0.5em 0; color: #333; }
+		.mega-icon { position: absolute; left: 50%; top: 1em; margin-left: -7px; opacity: 0.3; }
+		.mega-icon:hover { opacity: 0.6; }
+		</style>
+		<script type="text/javascript">
+		  document.createElement("nav");
+		  document.createElement("header");
+		  document.createElement("footer");
+		  document.createElement("section");
+		  document.createElement("aside");
+		  document.createElement("article");
+		</script>
+		<script src="../../jquery-1.9.1.js" type="text/javascript"></script>
+		<script src="../../jquery.ba-hashchange.js" type="text/javascript"></script>
+		<script src="../../smeshserver.js" type="text/javascript"></script>
+		<script src="../../misty.js" type="text/javascript"></script>
+		<script type="text/javascript">
+		function gotoSignIn(path) {
+			if (location.hash != '#signin' && location.hash != '#signout' )
+				$('#signin').prop('ref', location.hash);
+			location.hash = '#signin';
+		}
+		
+		function goHome() {
+			location.hash = '#home';
+		}
+		
+		function gotoFeeds() {
+			location.hash = '#feeds';
+		}
+		
+		$(function () {
+		var $loading = $('#loading img');
+		
+		function signIn(username, password) {
+			misty.signIn(username, password,
+				function() {
+					$loading.remove();
+					$('#user-links').empty()
+						.append('<li><a href="#home"><i class="icon-user"></i>' + misty.username + '</a></li>')
+						.append('<li><a href="#signout"><i class="icon-share"></i>Sign out</a></li>');
+					
+					var ref = $('#signin').prop('ref');
+					ref ? (location.hash = ref) :
+						(location.hash && location.hash != '#signin' ?
+						$(window).trigger('hashchange') : goHome());
+				},
+				function() {
+					$loading.remove();
+					location.hash == '#signin' ?
+						$('#signin').fadeIn() : gotoSignIn();
+				});
+		}
+		
+		$('#signin form').submit(function() {
+			var $this = $(this);
+			var username = $this.find('input[name="username"]').val();
+			var password = $this.find('input[name="password"]').val();
+			
+			$loading.insertAfter($this.find('button'));
+			signIn(username, password);
+			
+			return false;
+		});
+		
+		$(window).hashchange(function() {
+			var hash = location.hash;
+			
+			if (!hash) {
+				hash = '#home';
+			}
+			
+			document.title = 'SmeshLink';
+			
+			if ('#signin' == hash) {
+				$loading.remove();
+				$('#user-links').html('<li><a href="#signin">Sign in</a></li>');
+				$('#ct').fadeOut(function() {
+					$('#signin').fadeIn();
+				});
+			} else if ('#signout' == hash) {
+				$('#feeds').empty();
+				misty.signOut();
+				gotoSignIn();
+			} else {
+				var loadFeed = function() {
+					var $breadcrumb = $('ul.breadcrumb').html('<li><a href="#home">Home</a>');
+					var $secs = $breadcrumb.nextAll('section').remove();
+					var preHash = $breadcrumb.prop('hash');
+					if (preHash)
+						$breadcrumb.data(preHash, $secs);
+					
+					if (hash == '#home') {
+						// TODO home page
+						return;
+					}
+					
+					var valid = false;
+					$('#feeds li').each(function() {
+						var $that = $(this);
+						if ($that.children('a').attr('href') === hash) {
+							valid = true;
+							$that.addClass('active');
+						} else {
+							$that.removeClass('active');
+						}
+					});
+					
+					hash = hash.substr(1);
+					var path = hash.split('/');
+					var href = '';
+					document.title += ' | ' + hash;
+					for (var i = 0; i < path.length; i++) {
+						href += path[i];
+						if (i == path.length - 1)
+							$breadcrumb.append('<li class="active"><span class="divider">/</span> ' + path[i]);
+						else {
+							$breadcrumb.append('<li><span class="divider">/</span> <a href="#' + href + '">' + path[i] + '</a>');
+							href += '/';
+						}
+					}
+					
+					$breadcrumb.prop('hash', hash);
+					var cache = $breadcrumb.data(hash);
+					if (cache) {
+						//$breadcrumb.parent().append(cache);
+						//return;
+					}
+					
+					$breadcrumb.after($loading);
+					
+					var render = function(feed, path, title, top) {
+						path += feed == top ? '' : feed.name;
+						title += feed == top ? '' :
+							'<a href=' + location.hash + '/' +
+							path + '>' + feed.name + '</a>';
+						if (feed.children) {
+							title = title ? (title + '&nbsp;/&nbsp;') : title;
+							path = path ? (path + '/') : path;
+							$.each(feed.children, function() {
+								render(this, path, title, top);
+							});
+						} else {
+							var $section = $('<section/>').appendTo($breadcrumb.parent());
+							var $title = $('<h2/>')
+								.append(title ? title : feed.name)
+								.appendTo($section);
+							
+							if (feed.current != undefined && typeof(feed.current) != 'object')
+								$title.append('&nbsp;<small class="label label-info" title="current"><i class="icon-time icon-white"></i>' + feed.current + '</small>');
+							if (feed.max != undefined && typeof(feed.max) != 'object')
+								$title.append('&nbsp;<small class="label label-info" title="current"><i class="icon-time icon-white"></i>' + feed.max + '</small>');
+							if (feed.min != undefined && typeof(feed.min) != 'object')
+								$title.append('<small class="label" title="min"><i class="icon-download icon-white"></i>' + feed.min + '</small>');
+							
+							if (feed.data) {
+								var $table = $('<table class="table table-striped"><thead><tr><th>Key</th><th>Value</th></tr></thead></table>').appendTo($section);;
+								var $tbody = $('<tbody/>').appendTo($table);
+								for (var i in feed.data) {
+									var entry = feed.data[i];
+									var keyStr;
+									if (entry.at && !entry.key)
+										entry.key = misty.fromDateTime8601(entry.at);
+									if (entry.key instanceof Date)
+										keyStr = entry.key.toLocaleString();
+									else
+										keyStr = entry.key;
+									$tbody.append('<tr><td>' + keyStr + '</td><td>' + entry.value + '</td></tr>');
+								}
+							}
+						}
+					};
+					
+					if ('#feeds' == location.hash) {
+						misty.feed.list(function(feeds) {
+							$loading.remove();
+							$.each(feeds, function() {
+								render(this, '', '');
+							});
+						}, gotoSignIn);
+					} else {
+						misty.feed.find(hash, { duration: 86400, n: 10 }, function(feed) {
+							$loading.remove();
+							if (feed)
+								render(feed, '', '', feed);
+							else
+								$breadcrumb.after('<section><span class="label label-important">Not found</span></section>');
+						}, gotoSignIn);
+					}
+				};
+				
+				$('#signin').fadeOut(function() {
+					if ($('#feeds').children().length > 0)
+						loadFeed();
+					else {
+						$loading.appendTo($('#loading'));
+						
+						misty.feed.list(function (feeds) {
+							$('#ct').fadeIn();
+							$loading.remove();
+							
+							var renderFeedTree = function(feed, ul, path) {
+								path += feed.name;
+								var $li = $('<li/>')
+									.append('<a href="#feeds/' + path + '">' + feed.name + '</a>')
+									.appendTo(ul);
+								if (feed.children) {
+									var $sub = $('<ul class="nav nav-list"/>').appendTo($li);
+									$.each(feed.children, function() {
+										renderFeedTree(this, $sub, path + '/');
+									});
+								}
+							};
+							
+							var $feedTree = $('#feeds');
+							$feedTree.html('<li class="nav-header">Feeds Tree</li>');
+							$.each(feeds, function() {
+								renderFeedTree(this, $feedTree, '', '');
+							});
+							$('ul.breadcrumb').html('<li><a href="#home">Home</a>');
+							
+							loadFeed();
+						}, gotoSignIn);
+					}
+				});
+			}
+		});
+
+		signIn('admin', 'admin');
+		//goHome();
+		//$(window).trigger('hashchange');
+		});
+		</script>
+	</head>
+	<body>
+	<div id="wp">
+		<header id="hd">
+			<div class="container">
+				<h1 class="span6"><a href="">SmeshL<em>i</em>nk</a></h1>
+				<ul id="user-links" class="unstyled inline pull-right">
+					<li><a href="#signin">Sign in</a></li>
+				</ul>
+			</div>
+		</header>
+		<div id="bd">
+			<div id="loading" class="container">
+				<img src="img/preload.gif" alt="" />
+			</div>
+			<div id="ct" class="container">
+				<div class="row-fluid">
+					<nav class="span3">
+						<ul id="feeds" class="nav nav-list">
+						</ul>
+					</nav>
+					<div class="span9">
+						<ul class="breadcrumb">
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div id="signin" class="container">
+				<form class="span3">
+					<fieldset>
+						<legend><i class="icon-user" style="vertical-align: inherit"></i>&nbsp;Sign in</legend>
+						<input type="text" name="username" class="input-block-level" placeholder="Username">
+						<input type="password" name="password" class="input-block-level" placeholder="Password">
+						<button type="submit" class="btn btn-primary">Sign in</button>
+					</fieldset>
+				</form>
+			</div>
+		</div>
+		<footer id="ft">
+			<div class="container">
+				<a href="//www.smeshlink.com"><i class="mega-icon icon-home"></i></a>
+				<ul id="legal" class="unstyled inline">
+					<li><a href="#">Terms of Service</a></li>
+					<li><a href="#">Privacy</a></li>
+					<li class="pull-right">&copy; 2013 <a href="//www.smeshlink.com">SmeshLink</a>. All rights reserved</li>
+				</ul>
+			</div>
+		</footer>
+	</div>
+	</body>
+</html>
