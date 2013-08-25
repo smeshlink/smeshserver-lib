@@ -29,6 +29,14 @@ var
   
   console,
   
+  toDateString = function(date) {
+    if (typeof date === 'string')
+      return date;
+    var padding = function(n) { return n < 10 ? '0' + n : n; };
+    return padding(date.getFullYear()) + '-' + padding(date.getMonth() + 1) + '-' + padding(date.getDate())
+      + ' ' + padding(date.getHours()) + ':' + padding(date.getMinutes()) + ':' + padding(date.getSeconds());
+  },
+  
   // convert to local date
   coerceToLocal = function(date) {
     return new Date(
@@ -227,17 +235,28 @@ var
           done = options;
           options = undefined;
         }
+        if (!options)
+          return;
+        if (options.duration && (!options.start || !options.end)) {
+          if (options.start) {
+            options.end = new Date(options.start.getTime() + options.duration * 1000);
+          } else {
+            if (!options.end)
+              options.end = new Date();
+            options.start = new Date(options.end.getTime() - options.duration * 1000);
+          }
+        }
         if (options.field) {
           options.boardId = options.boardId || 'all';
           if (options.config) {
             this.setConfig(options.config, function() {
               execute('NodeData.GetNodesDataCount',
-                [ options.start, options.end, options.nodes.join(' '),
+                [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                   options.field, options.boardId ], done, fail);
             });
           } else {
             execute('NodeData.GetNodesDataCount',
-              [ options.start, options.end, options.nodes.join(' '),
+              [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                 options.field, options.boardId ], done, fail);
           }
         } else {
@@ -246,12 +265,12 @@ var
           if (options.config) {
             this.setConfig(options.config, function() {
               execute('NodeData.getTotalPages',
-                [ options.start, options.end, options.nodes.join(' '),
+                [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                   options.n, options.boardId ], done, fail);
             });
           } else {
             execute('NodeData.getTotalPages',
-              [ options.start, options.end, options.nodes.join(' '),
+              [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                 options.n, options.boardId ], done, fail);
           }
         }
@@ -263,18 +282,32 @@ var
           done = options;
           options = undefined;
         }
+        
+        if (!options)
+          return;
+        
+        if (options.duration && (!options.start || !options.end)) {
+          if (options.start) {
+            options.end = new Date(options.start.getTime() + options.duration * 1000);
+          } else {
+            if (!options.end)
+              options.end = new Date();
+            options.start = new Date(options.end.getTime() - options.duration * 1000);
+          }
+        }
+        
         if (options.field) {
           options.type = Number(options.type) || 1;
           options.boardId = options.boardId || 'all';
           if (options.config) {
             this.setConfig(options.config, function() {
               execute('NodeData.GetNodesDatabyType',
-                [ options.start, options.end, options.nodes.join(' '),
+                [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                   options.field, options.type, options.boardId ], done, fail);
             });
           } else {
             execute('NodeData.GetNodesDatabyType',
-              [ options.start, options.end, options.nodes.join(' '),
+              [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                 options.field, options.type, options.boardId ], done, fail);
           }
         } else {
@@ -284,12 +317,12 @@ var
           if (options.config) {
             this.setConfig(options.config, function() {
               execute('NodeData.getAllNodes',
-                [ options.start, options.end, options.nodes.join(' '),
+                [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                   options.n, options.p, options.boardId ], done, fail);
             });
           } else {
             execute('NodeData.getAllNodes',
-              [ options.start, options.end, options.nodes.join(' '),
+              [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                 options.n, options.p, options.boardId ], done, fail);
           }
         }
@@ -307,12 +340,12 @@ var
         if (options.config) {
           this.setConfig(options.config, function() {
             execute('NodeData.getTotalPages',
-              [ options.start, options.end, options.nodes.join(' '),
+              [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
                 options.n, options.boardId ], done, fail);
           });
         } else {
           execute('NodeData.getTotalPages',
-            [ options.start, options.end, options.nodes.join(' '),
+            [ toDateString(options.start), toDateString(options.end), options.nodes.join(' '),
               options.n, options.boardId ], done, fail);
         }
       },
